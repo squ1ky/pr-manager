@@ -1,7 +1,6 @@
 CREATE TABLE teams
 (
-    id         VARCHAR(255) PRIMARY KEY,
-    name       VARCHAR(255) NOT NULL UNIQUE,
+    name       VARCHAR(255) PRIMARY KEY,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -9,7 +8,7 @@ CREATE TABLE users
 (
     id         VARCHAR(255) PRIMARY KEY,
     username   VARCHAR(255) NOT NULL,
-    team_id    VARCHAR(255) REFERENCES teams (id) ON DELETE SET NULL,
+    team_name  VARCHAR(255) REFERENCES teams (name) ON DELETE SET NULL,
     is_active  BOOLEAN   DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
