@@ -62,21 +62,3 @@ func (r *TeamRepository) GetTeamByName(ctx context.Context, teamName string) (*e
 
 	return &team, members, nil
 }
-
-func (r *TeamRepository) TeamExistsByName(ctx context.Context, teamName string) (bool, error) {
-	const q = `
-		SELECT 1
-		FROM teams
-		WHERE name = $1
-		LIMIT 1
-	`
-
-	var dummy int
-	if err := r.db.GetContext(ctx, &dummy, q, teamName); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}

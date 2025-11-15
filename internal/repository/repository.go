@@ -8,7 +8,6 @@ import (
 type TeamRepository interface {
 	CreateTeam(ctx context.Context, teamName string) error
 	GetTeamByName(ctx context.Context, teamName string) (*entity.Team, []entity.User, error)
-	TeamExistsByName(ctx context.Context, teamName string) (bool, error)
 }
 
 type UserRepository interface {
