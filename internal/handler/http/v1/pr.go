@@ -103,7 +103,7 @@ func (h *PullRequestHandler) Merge(c *gin.Context) {
 
 type reassignPRRequest struct {
 	PullRequestID string `json:"pull_request_id" binding:"required"`
-	OldReviewerID string `json:"old_reviewer_id" binding:"required"`
+	OldUserID     string `json:"old_user_id" binding:"required"`
 }
 
 func (h *PullRequestHandler) Reassign(c *gin.Context) {
@@ -114,7 +114,7 @@ func (h *PullRequestHandler) Reassign(c *gin.Context) {
 		return
 	}
 
-	pr, reviewerIDs, replacedBy, err := h.prSvc.Reassign(c.Request.Context(), req.PullRequestID, req.OldReviewerID)
+	pr, reviewerIDs, replacedBy, err := h.prSvc.Reassign(c.Request.Context(), req.PullRequestID, req.OldUserID)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrNotFound):
