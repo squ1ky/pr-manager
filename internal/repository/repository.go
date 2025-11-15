@@ -20,6 +20,7 @@ type UserRepository interface {
 type PullRequestRepository interface {
 	CreatePullRequest(ctx context.Context, pr *entity.PullRequest) error
 	GetPullRequestByID(ctx context.Context, id string) (*entity.PullRequest, error)
+	GetPullRequestsByIDs(ctx context.Context, ids []string) ([]entity.PullRequest, error)
 	MarkMerged(ctx context.Context, id string) (*entity.PullRequest, error)
 }
 

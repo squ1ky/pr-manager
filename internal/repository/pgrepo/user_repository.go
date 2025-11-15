@@ -17,7 +17,7 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (r *UserRepository) UpsertUsers(ctx context.Context, users []entity.User) error {
+func (r *UserRepository) UpsertUsers(ctx context.Context, users []entity.User) (err error) {
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return err

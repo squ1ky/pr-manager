@@ -59,6 +59,32 @@ func (r *PullRequestRepository) GetPullRequestByID(ctx context.Context, id strin
 	return &pr, nil
 }
 
+func (r *PullRequestRepository) GetPullRequestsByIDs(ctx context.Context, ids []string) ([]entity.PullRequest, error) {
+	if len(ids) == 0 {
+		return []entity.PullRequest{}, nil
+	}
+
+	baseQuery := `
+		SELECT id, name, author_id, status, created_at, merged_at
+		FROM pull_requests
+		WHERE id IN (?)
+	`
+
+	query, args, err := sqlx.In(baseQuery, ids)
+	if err != nil {
+		return nil, err
+	}
+	
+	query = r.db.Rebind(query)
+
+	var prs []entity.PullRequest
+	if err := r.db.SelectContext(ctx, &prs, query, args...); err != nil {
+		return nil, err
+	}
+
+	return prs, nil
+}
+
 func (r *PullRequestRepository) MarkMerged(ctx context.Context, id string) (*entity.PullRequest, error) {
 	const q = `
 		UPDATE pull_requests

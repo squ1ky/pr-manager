@@ -191,16 +191,9 @@ func (s *PullRequestService) GetByReviewer(ctx context.Context, reviewerID strin
 		return []entity.PullRequest{}, nil
 	}
 
-	prs := make([]entity.PullRequest, 0, len(ids))
-	for _, id := range ids {
-		pr, err := s.prRepo.GetPullRequestByID(ctx, id)
-		if err != nil {
-			if errors.Is(err, repository.ErrNotFound) {
-				continue
-			}
-			return nil, err
-		}
-		prs = append(prs, *pr)
+	prs, err := s.prRepo.GetPullRequestsByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
 	}
 
 	return prs, nil

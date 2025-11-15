@@ -7,6 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/squ1ky/pr-manager/internal/entity"
+	"github.com/squ1ky/pr-manager/internal/repository"
 )
 
 type PullRequestReviewerRepository struct {
@@ -91,7 +92,7 @@ func (r *PullRequestReviewerRepository) AddReviewer(ctx context.Context, prID st
 	if _, err := r.db.ExecContext(ctx, q, prID, reviewerID); err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
-			return nil
+			return repository.ErrAlreadyExists
 		}
 		return err
 	}
