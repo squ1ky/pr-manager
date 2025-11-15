@@ -24,7 +24,6 @@ func RunMigrations(db *sql.DB, logger *slog.Logger) error {
 	if err != nil {
 		return fmt.Errorf("failed to create migrator: %w", err)
 	}
-	defer m.Close()
 
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return fmt.Errorf("migration failed: %w", err)
@@ -61,7 +60,6 @@ func RollbackMigration(db *sql.DB, logger *slog.Logger, steps int) error {
 	if err != nil {
 		return fmt.Errorf("failed to create migrator: %w", err)
 	}
-	defer m.Close()
 
 	if err := m.Steps(steps); err != nil {
 		return fmt.Errorf("rollback failed: %w", err)
