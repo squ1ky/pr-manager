@@ -7,7 +7,12 @@ import (
 )
 
 type Config struct {
+	App      AppConfig      `env-prefix:"APP_"`
 	Database DatabaseConfig `env-prefix:"DB_"`
+}
+
+type AppConfig struct {
+	Port int `env:"PORT" envDefault:"8080"`
 }
 
 type DatabaseConfig struct {
@@ -29,11 +34,22 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to read .env: %w", err)
 	}
 
+	if err := cfg.App.Validate(); err != nil {
+		return nil, fmt.Errorf("failed to validate app config: %w", err)
+	}
+
 	if err := cfg.Database.Validate(); err != nil {
 		return nil, fmt.Errorf("failed to validate database config: %w", err)
 	}
 
 	return &cfg, nil
+}
+
+func (c *AppConfig) Validate() error {
+	if c.Port <= 0 {
+		return fmt.Errorf("app port must be greater than 0")
+	}
+	return nil
 }
 
 func (c *DatabaseConfig) Validate() error {
