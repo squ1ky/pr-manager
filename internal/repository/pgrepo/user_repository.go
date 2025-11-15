@@ -30,11 +30,11 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []entity.User) e
 	}()
 
 	const q = `
-		INSERT INTO users (id, username, team_id, is_active)
+		INSERT INTO users (id, username, team_name, is_active)
 		VALUES ($1, $2, $3, $4)
 		ON CONFLICT (id) DO UPDATE
 		SET username = EXCLUDED.username,
-			team_id = EXCLUDED.team_id,
+			team_name = EXCLUDED.team_name,
 			is_active = EXCLUDED.is_active
 	`
 
@@ -44,7 +44,7 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []entity.User) e
 		if _, err = tx.ExecContext(ctx, q,
 			u.ID,
 			u.Username,
-			u.TeamID,
+			u.TeamName,
 			u.IsActive,
 		); err != nil {
 			return err
@@ -56,7 +56,7 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []entity.User) e
 
 func (r *UserRepository) GetUserByID(ctx context.Context, id string) (*entity.User, error) {
 	const q = `
-		SELECT id, username, team_id, is_active, created_at
+		SELECT id, username, team_name, is_active, created_at
     	FROM users
 		WHERE id = $1
 	`
@@ -77,7 +77,7 @@ func (r *UserRepository) SetUserActive(ctx context.Context, userID string, activ
 		UPDATE users
 		SET is_active = $2
 		WHERE id = $1
-		RETURNING id, username, team_id, is_active, created_at
+		RETURNING id, username, team_name, is_active, created_at
 	`
 
 	var u entity.User
@@ -91,15 +91,15 @@ func (r *UserRepository) SetUserActive(ctx context.Context, userID string, activ
 	return &u, nil
 }
 
-func (r *UserRepository) GetUsersByTeamID(ctx context.Context, teamID string) ([]entity.User, error) {
+func (r *UserRepository) GetUsersByTeamName(ctx context.Context, teamName string) ([]entity.User, error) {
 	const q = `
-		SELECT id, username, team_id, is_active, created_at
+		SELECT id, username, team_name, is_active, created_at
 		FROM users
-		WHERE team_id = $1
+		WHERE team_name = $1
 	`
 
 	var users []entity.User
-	if err := r.db.SelectContext(ctx, &users, q, teamID); err != nil {
+	if err := r.db.SelectContext(ctx, &users, q, teamName); err != nil {
 		return nil, err
 	}
 

@@ -6,7 +6,7 @@ import (
 )
 
 type TeamRepository interface {
-	CreateTeam(ctx context.Context, teamName string, members []entity.User) error
+	CreateTeam(ctx context.Context, teamName string) error
 	GetTeamByName(ctx context.Context, teamName string) (*entity.Team, []entity.User, error)
 	TeamExistsByName(ctx context.Context, teamName string) (bool, error)
 }
@@ -15,7 +15,7 @@ type UserRepository interface {
 	UpsertUsers(ctx context.Context, users []entity.User) error
 	GetUserByID(ctx context.Context, id string) (*entity.User, error)
 	SetUserActive(ctx context.Context, userID string, active bool) (*entity.User, error)
-	GetUsersByTeamID(ctx context.Context, teamID string) ([]entity.User, error)
+	GetUsersByTeamName(ctx context.Context, teamName string) ([]entity.User, error)
 }
 
 type PullRequestRepository interface {

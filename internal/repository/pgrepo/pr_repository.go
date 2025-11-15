@@ -62,7 +62,7 @@ func (r *PullRequestRepository) GetPullRequestByID(ctx context.Context, id strin
 func (r *PullRequestRepository) MarkMerged(ctx context.Context, id string) (*entity.PullRequest, error) {
 	const q = `
 		UPDATE pull_requests
-		SET status = $2
+		SET status = $2,
 			merged_at = COALESCE(merged_at, NOW())
 		WHERE id = $1
 		RETURNING id, name, author_id, status, created_at, merged_at
