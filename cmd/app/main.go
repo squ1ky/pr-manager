@@ -55,8 +55,9 @@ func main() {
 	router.Use(gin.Logger(), gin.Recovery())
 
 	v1.NewRouter(router, teamSvc, userSvc, prSvc)
+	v1.InitValidator()
 
-	addr := fmt.Sprintf("%:d", cfg.App.Port)
+	addr := fmt.Sprintf(":%d", cfg.App.Port)
 
 	srv := &http.Server{
 		Addr:    addr,

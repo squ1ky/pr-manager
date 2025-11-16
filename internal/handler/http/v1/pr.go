@@ -35,16 +35,14 @@ func NewPullRequestHandler(prSvc *service.PullRequestService) *PullRequestHandle
 }
 
 type createPRRequest struct {
-	PullRequestID   string `json:"pull_request_id" binding:"required"`
-	PullRequestName string `json:"pull_request_name" binding:"required"`
-	AuthorID        string `json:"author_id" binding:"required"`
+	PullRequestID   string `json:"pull_request_id" binding:"required,notblank,max=255"`
+	PullRequestName string `json:"pull_request_name" binding:"required,notblank,max=255"`
+	AuthorID        string `json:"author_id" binding:"required,notblank,max=255"`
 }
 
 func (h *PullRequestHandler) Create(c *gin.Context) {
 	var req createPRRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		badRequest(c, "BAD_REQUEST", err.Error())
+	if !bindAndValidate(c, &req) {
 		return
 	}
 
@@ -73,14 +71,12 @@ func (h *PullRequestHandler) Create(c *gin.Context) {
 }
 
 type mergePRRequest struct {
-	PullRequestID string `json:"pull_request_id" binding:"required"`
+	PullRequestID string `json:"pull_request_id" binding:"required,notblank,max=255"`
 }
 
 func (h *PullRequestHandler) Merge(c *gin.Context) {
 	var req mergePRRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		badRequest(c, "BAD_REQUEST", err.Error())
+	if !bindAndValidate(c, &req) {
 		return
 	}
 
@@ -102,15 +98,13 @@ func (h *PullRequestHandler) Merge(c *gin.Context) {
 }
 
 type reassignPRRequest struct {
-	PullRequestID string `json:"pull_request_id" binding:"required"`
-	OldUserID     string `json:"old_user_id" binding:"required"`
+	PullRequestID string `json:"pull_request_id" binding:"required,notblank,max=255"`
+	OldUserID     string `json:"old_user_id" binding:"required,notblank,max=255"`
 }
 
 func (h *PullRequestHandler) Reassign(c *gin.Context) {
 	var req reassignPRRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		badRequest(c, "BAD_REQUEST", err.Error())
+	if !bindAndValidate(c, &req) {
 		return
 	}
 

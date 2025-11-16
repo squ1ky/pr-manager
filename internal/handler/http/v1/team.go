@@ -11,13 +11,13 @@ import (
 )
 
 type TeamMemberDTO struct {
-	UserID   string `json:"user_id"`
-	Username string `json:"username"`
-	IsActive bool   `json:"is_active"`
+	UserID   string `json:"user_id" binding:"required,notblank,max=255"`
+	Username string `json:"username" binding:"required,notblank,max=255"`
+	IsActive *bool  `json:"is_active" binding:"required"`
 }
 
 type TeamDTO struct {
-	TeamName string          `json:"team_name"`
+	TeamName string          `json:"team_name" binding:"required,notblank,max=255"`
 	Members  []TeamMemberDTO `json:"members"`
 }
 
@@ -31,9 +31,7 @@ func NewTeamHandler(teamSvc *service.TeamService) *TeamHandler {
 
 func (h *TeamHandler) AddTeam(c *gin.Context) {
 	var req TeamDTO
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		badRequest(c, "BAD_REQUEST", err.Error())
+	if !bindAndValidate(c, &req) {
 		return
 	}
 
@@ -42,7 +40,7 @@ func (h *TeamHandler) AddTeam(c *gin.Context) {
 		members = append(members, entity.User{
 			ID:       m.UserID,
 			Username: m.Username,
-			IsActive: m.IsActive,
+			IsActive: *m.IsActive,
 		})
 	}
 
@@ -66,7 +64,7 @@ func (h *TeamHandler) AddTeam(c *gin.Context) {
 		resp.Members = append(resp.Members, TeamMemberDTO{
 			UserID:   u.ID,
 			Username: u.Username,
-			IsActive: u.IsActive,
+			IsActive: &u.IsActive,
 		})
 	}
 
@@ -75,14 +73,17 @@ func (h *TeamHandler) AddTeam(c *gin.Context) {
 	})
 }
 
+type getTeamRequest struct {
+	TeamName string `form:"team_name" binding:"required,notblank,max=255"`
+}
+
 func (h *TeamHandler) GetTeam(c *gin.Context) {
-	teamName := c.Query("team_name")
-	if teamName == "" {
-		badRequest(c, "BAD_REQUEST", "team_name is required")
+	var req getTeamRequest
+	if !bindAndValidate(c, &req) {
 		return
 	}
 
-	team, members, err := h.teamSvc.GetTeam(c.Request.Context(), teamName)
+	team, members, err := h.teamSvc.GetTeam(c.Request.Context(), req.TeamName)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrNotFound):
@@ -101,7 +102,7 @@ func (h *TeamHandler) GetTeam(c *gin.Context) {
 		resp.Members = append(resp.Members, TeamMemberDTO{
 			UserID:   u.ID,
 			Username: u.Username,
-			IsActive: u.IsActive,
+			IsActive: &u.IsActive,
 		})
 	}
 

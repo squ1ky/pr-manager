@@ -28,15 +28,13 @@ func NewUserHandler(userSvc *service.UserService, prSvc *service.PullRequestServ
 }
 
 type setIsActiveRequest struct {
-	UserID   string `json:"user_id" binding:"required"`
+	UserID   string `json:"user_id" binding:"required,notblank,max=255"`
 	IsActive *bool  `json:"is_active" binding:"required"`
 }
 
 func (h *UserHandler) SetIsActive(c *gin.Context) {
 	var req setIsActiveRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		badRequest(c, "BAD_REQUEST", err.Error())
+	if !bindAndValidate(c, &req) {
 		return
 	}
 
@@ -44,7 +42,7 @@ func (h *UserHandler) SetIsActive(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrNotFound):
-			notFound(c, "user_not_found")
+			notFound(c, "resource not found")
 		default:
 			internalError(c)
 		}
@@ -63,35 +61,38 @@ func (h *UserHandler) SetIsActive(c *gin.Context) {
 	})
 }
 
+type getReviewRequest struct {
+	UserID string `form:"user_id" binding:"required,notblank,max=255"`
+}
+
 type getReviewResponse struct {
 	UserID       string                `json:"user_id"`
 	PullRequests []PullRequestShortDTO `json:"pull_requests"`
 }
 
 func (h *UserHandler) GetReview(c *gin.Context) {
-	userID := c.Query("user_id")
-	if userID == "" {
-		badRequest(c, "BAD_REQUEST", "user_id is required")
+	var req getReviewRequest
+	if !bindAndValidate(c, &req) {
 		return
 	}
 
-	if _, err := h.userSvc.GetByID(c.Request.Context(), userID); err != nil {
+	if _, err := h.userSvc.GetByID(c.Request.Context(), req.UserID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			notFound(c, "user_not_found")
+			notFound(c, "resource not found")
 		} else {
 			internalError(c)
 		}
 		return
 	}
 
-	prs, err := h.prSvc.GetByReviewer(c.Request.Context(), userID)
+	prs, err := h.prSvc.GetByReviewer(c.Request.Context(), req.UserID)
 	if err != nil {
 		internalError(c)
 		return
 	}
 
 	resp := getReviewResponse{
-		UserID:       userID,
+		UserID:       req.UserID,
 		PullRequests: make([]PullRequestShortDTO, 0, len(prs)),
 	}
 
