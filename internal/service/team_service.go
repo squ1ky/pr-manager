@@ -6,11 +6,13 @@ import (
 	"github.com/squ1ky/pr-manager/internal/repository"
 )
 
+// TeamService provides operations for managing teams and their members.
 type TeamService struct {
 	teamRepo repository.TeamRepository
 	userRepo repository.UserRepository
 }
 
+// NewTeamService constructs a new TeamService with the given repositories.
 func NewTeamService(teamRepo repository.TeamRepository, userRepo repository.UserRepository) *TeamService {
 	return &TeamService{
 		teamRepo: teamRepo,
@@ -18,6 +20,7 @@ func NewTeamService(teamRepo repository.TeamRepository, userRepo repository.User
 	}
 }
 
+// CreateTeamWithMembers creates a team and upserts its members into that team.
 func (s *TeamService) CreateTeamWithMembers(ctx context.Context, teamName string, members []entity.User) (*entity.Team, []entity.User, error) {
 	if err := s.teamRepo.CreateTeam(ctx, teamName); err != nil {
 		return nil, nil, err
@@ -42,6 +45,7 @@ func (s *TeamService) CreateTeamWithMembers(ctx context.Context, teamName string
 	return team, actualMembers, nil
 }
 
+// GetTeam returns a team and its members by team name.
 func (s *TeamService) GetTeam(ctx context.Context, teamName string) (*entity.Team, []entity.User, error) {
 	return s.teamRepo.GetTeamByName(ctx, teamName)
 }
