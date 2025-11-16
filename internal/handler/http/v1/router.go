@@ -33,6 +33,7 @@ func NewRouter(
 	// Users
 	v1.POST("/users/setIsActive", h.User.SetIsActive)
 	v1.GET("/users/getReview", h.User.GetReview)
+	v1.GET("/users/assignments/stat", h.User.GetUserAssignmentsStat)
 
 	// PullRequests
 	v1.POST("/pullRequest/create", h.PullRequest.Create)

@@ -3,6 +3,8 @@ package mocks
 import (
 	"context"
 
+	"github.com/squ1ky/pr-manager/internal/repository"
+
 	"github.com/stretchr/testify/mock"
 
 	"github.com/squ1ky/pr-manager/internal/entity"
@@ -99,6 +101,16 @@ func (m *PullRequestReviewerRepositoryMock) RemoveReviewer(ctx context.Context, 
 func (m *PullRequestReviewerRepositoryMock) IsReviewerAssigned(ctx context.Context, prID string, reviewerID string) (bool, error) {
 	args := m.Called(ctx, prID, reviewerID)
 	return args.Bool(0), args.Error(1)
+}
+
+func (m *PullRequestReviewerRepositoryMock) GetUserAssignmentsStat(
+	ctx context.Context,
+	userID string,
+) (repository.UserAssignmentsStat, error) {
+	args := m.Called(ctx, userID)
+
+	stat, _ := args.Get(0).(repository.UserAssignmentsStat)
+	return stat, args.Error(1)
 }
 
 // TeamRepositoryMock mocks repository.TeamRepository.

@@ -32,4 +32,10 @@ type PullRequestReviewerRepository interface {
 	AddReviewer(ctx context.Context, prID string, reviewerID string) error
 	RemoveReviewer(ctx context.Context, prID string, reviewerID string) error
 	IsReviewerAssigned(ctx context.Context, prID string, reviewerID string) (bool, error)
+	GetUserAssignmentsStat(ctx context.Context, userID string) (UserAssignmentsStat, error)
+}
+
+type UserAssignmentsStat struct {
+	UserID string
+	Count  int
 }

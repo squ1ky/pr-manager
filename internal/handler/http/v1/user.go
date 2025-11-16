@@ -95,3 +95,41 @@ func (h *UserHandler) GetReview(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+type getUserAssignmentsStatRequest struct {
+	UserID string `form:"user_id" binding:"required,notblank,max=255"`
+}
+
+type getUserAssignmentsStatResponse struct {
+	UserID           string `json:"user_id"`
+	AssignmentsCount int    `json:"assignments_count"`
+}
+
+func (h *UserHandler) GetUserAssignmentsStat(c *gin.Context) {
+	var req getUserAssignmentsStatRequest
+	if !bindAndValidate(c, &req) {
+		return
+	}
+
+	if _, err := h.userSvc.GetByID(c.Request.Context(), req.UserID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			notFound(c, "resource not found")
+		} else {
+			internalError(c)
+		}
+		return
+	}
+
+	stat, err := h.prSvc.GetUserAssignmentsStat(c.Request.Context(), req.UserID)
+	if err != nil {
+		internalError(c)
+		return
+	}
+
+	resp := getUserAssignmentsStatResponse{
+		UserID:           stat.UserID,
+		AssignmentsCount: stat.Count,
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

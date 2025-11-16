@@ -133,3 +133,21 @@ func (r *PullRequestReviewerRepository) IsReviewerAssigned(ctx context.Context, 
 
 	return true, nil
 }
+
+func (r *PullRequestReviewerRepository) GetUserAssignmentsStat(ctx context.Context, userID string) (repository.UserAssignmentsStat, error) {
+	const q = `
+		SELECT COUNT(*) AS count
+		FROM pull_request_reviewers
+		WHERE reviewer_id = $1
+	`
+
+	var count int
+	if err := r.db.GetContext(ctx, &count, q, userID); err != nil {
+		return repository.UserAssignmentsStat{}, err
+	}
+
+	return repository.UserAssignmentsStat{
+		UserID: userID,
+		Count:  count,
+	}, nil
+}

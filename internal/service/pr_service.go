@@ -208,6 +208,16 @@ func (s *PullRequestService) GetByReviewer(ctx context.Context, reviewerID strin
 	return prs, nil
 }
 
+// GetUserAssignmentsStat returns user's assignment statistics
+func (s *PullRequestService) GetUserAssignmentsStat(ctx context.Context, userID string) (repository.UserAssignmentsStat, error) {
+	st, err := s.reviewerRepo.GetUserAssignmentsStat(ctx, userID)
+	if err != nil {
+		return repository.UserAssignmentsStat{}, err
+	}
+
+	return st, nil
+}
+
 // pickRandomReviewers picks up to n random reviewer IDs from the given users.
 func (s *PullRequestService) pickRandomReviewers(candidates []entity.User, n int) []string {
 	if len(candidates) == 0 || n <= 0 {
