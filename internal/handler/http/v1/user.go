@@ -2,10 +2,12 @@ package v1
 
 import (
 	"errors"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+
 	"github.com/squ1ky/pr-manager/internal/repository"
 	"github.com/squ1ky/pr-manager/internal/service"
-	"net/http"
 )
 
 type UserDTO struct {

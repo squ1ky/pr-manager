@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/squ1ky/pr-manager/internal/entity"
 	"github.com/squ1ky/pr-manager/internal/repository"
 )

@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+
 	"github.com/squ1ky/pr-manager/internal/entity"
 	"github.com/squ1ky/pr-manager/internal/repository"
 )

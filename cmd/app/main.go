@@ -4,18 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/squ1ky/pr-manager/config"
-	v1 "github.com/squ1ky/pr-manager/internal/handler/http/v1"
-	"github.com/squ1ky/pr-manager/internal/infrastructure/db"
-	"github.com/squ1ky/pr-manager/internal/repository/pgrepo"
-	"github.com/squ1ky/pr-manager/internal/service"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/squ1ky/pr-manager/config"
+	v1 "github.com/squ1ky/pr-manager/internal/handler/http/v1"
+	"github.com/squ1ky/pr-manager/internal/infrastructure/db"
+	"github.com/squ1ky/pr-manager/internal/repository/pgrepo"
+	"github.com/squ1ky/pr-manager/internal/service"
 )
 
 func main() {

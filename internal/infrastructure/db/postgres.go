@@ -3,11 +3,13 @@ package db
 import (
 	"context"
 	"fmt"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
-	"github.com/squ1ky/pr-manager/config"
 	"log/slog"
 	"time"
+
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
+
+	"github.com/squ1ky/pr-manager/config"
 )
 
 type Database struct {
@@ -29,14 +31,14 @@ func NewPostgresConnection(cfg *config.DatabaseConfig, logger *slog.Logger) (*Da
 	defer cancel()
 
 	if err := db.PingContext(ctx); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	logger.Info("successfully connected to PostgreSQL")
 
 	if err := RunMigrations(db.DB, logger); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
@@ -52,5 +54,5 @@ func (d *Database) Close() error {
 }
 
 func (d *Database) Ping(ctx context.Context) error {
-	return d.DB.PingContext(ctx)
+	return d.PingContext(ctx)
 }

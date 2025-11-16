@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/squ1ky/pr-manager/internal/entity"
-	"github.com/squ1ky/pr-manager/internal/repository"
 	"math/rand"
 	"time"
+
+	"github.com/squ1ky/pr-manager/internal/entity"
+	"github.com/squ1ky/pr-manager/internal/repository"
 )
 
 var (

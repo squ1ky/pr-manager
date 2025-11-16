@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+
 	"github.com/squ1ky/pr-manager/internal/entity"
 	"github.com/squ1ky/pr-manager/internal/repository"
 )
@@ -74,7 +76,7 @@ func (r *PullRequestRepository) GetPullRequestsByIDs(ctx context.Context, ids []
 	if err != nil {
 		return nil, err
 	}
-	
+
 	query = r.db.Rebind(query)
 
 	var prs []entity.PullRequest

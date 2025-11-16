@@ -2,11 +2,13 @@ package v1
 
 import (
 	"errors"
-	"github.com/gin-gonic/gin"
-	"github.com/squ1ky/pr-manager/internal/repository"
-	"github.com/squ1ky/pr-manager/internal/service"
 	"log/slog"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/squ1ky/pr-manager/internal/repository"
+	"github.com/squ1ky/pr-manager/internal/service"
 )
 
 type TeamMemberDTO struct {

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+
 	"github.com/squ1ky/pr-manager/internal/entity"
 )
 

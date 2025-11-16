@@ -2,6 +2,7 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
+
 	"github.com/squ1ky/pr-manager/internal/service"
 )
 
