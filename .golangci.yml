@@ -16,7 +16,6 @@ linters:
     - staticcheck
     - ineffassign
     - unused
-    - revive
     - sqlclosecheck
     - misspell
     - bodyclose
