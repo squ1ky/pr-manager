@@ -24,10 +24,14 @@ type TeamDTO struct {
 
 type TeamHandler struct {
 	teamSvc *service.TeamService
+	prSvc   *service.PullRequestService
 }
 
-func NewTeamHandler(teamSvc *service.TeamService) *TeamHandler {
-	return &TeamHandler{teamSvc: teamSvc}
+func NewTeamHandler(teamSvc *service.TeamService, prSvc *service.PullRequestService) *TeamHandler {
+	return &TeamHandler{
+		teamSvc: teamSvc,
+		prSvc:   prSvc,
+	}
 }
 
 func (h *TeamHandler) AddTeam(c *gin.Context) {
@@ -81,4 +85,24 @@ func (h *TeamHandler) GetTeam(c *gin.Context) {
 	resp := toTeamDTO(team, members)
 
 	c.JSON(http.StatusOK, resp)
+}
+
+type deactivateTeamMembersRequest struct {
+	TeamName string   `json:"team_name" binding:"required,notblank,max=255"`
+	UserIDs  []string `json:"user_ids" binding:"required"`
+}
+
+func (h *TeamHandler) DeactivateMembers(c *gin.Context) {
+	var req deactivateTeamMembersRequest
+	if !bindAndValidate(c, &req) {
+		return
+	}
+
+	if err := h.prSvc.DeactivateTeamMembersAndReassign(c.Request.Context(), req.TeamName, req.UserIDs); err != nil {
+		slog.Error("DeactivateTeamMembers failed", slog.String("error", err.Error()))
+		internalError(c)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

@@ -19,7 +19,7 @@ func NewRouter(
 	prService *service.PullRequestService,
 ) *Handlers {
 	h := &Handlers{
-		Team:        NewTeamHandler(teamService),
+		Team:        NewTeamHandler(teamService, prService),
 		User:        NewUserHandler(userService, prService),
 		PullRequest: NewPullRequestHandler(prService),
 	}
@@ -29,6 +29,7 @@ func NewRouter(
 	// Teams
 	v1.POST("/team/add", h.Team.AddTeam)
 	v1.GET("/team/get", h.Team.GetTeam)
+	v1.POST("/team/deactivateMembers", h.Team.DeactivateMembers)
 
 	// Users
 	v1.POST("/users/setIsActive", h.User.SetIsActive)

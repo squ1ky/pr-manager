@@ -218,6 +218,104 @@ func (s *PullRequestService) GetUserAssignmentsStat(ctx context.Context, userID 
 	return st, nil
 }
 
+func (s *PullRequestService) DeactivateTeamMembersAndReassign(
+	ctx context.Context,
+	teamName string,
+	userIDs []string,
+) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+
+	teamMembers, err := s.userRepo.GetUsersByTeamName(ctx, teamName)
+	if err != nil {
+		return err
+	}
+
+	teamSet := make(map[string]*entity.User, len(teamMembers))
+	for i := range teamMembers {
+		u := &teamMembers[i]
+		teamSet[u.ID] = u
+	}
+
+	deactivateSet := make(map[string]struct{}, len(userIDs))
+	for _, id := range userIDs {
+		deactivateSet[id] = struct{}{}
+		if _, ok := teamSet[id]; !ok {
+			return repository.ErrNotFound
+		}
+	}
+
+	for _, u := range teamSet {
+		if _, toDeactivate := deactivateSet[u.ID]; toDeactivate {
+			u.IsActive = false
+		}
+	}
+
+	for _, id := range userIDs {
+		if _, err := s.userRepo.SetUserActive(ctx, id, false); err != nil {
+			return err
+		}
+	}
+
+	for _, id := range userIDs {
+		prIDs, err := s.reviewerRepo.GetPullRequestIDsByReviewer(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		for _, prID := range prIDs {
+			pr, err := s.prRepo.GetPullRequestByID(ctx, prID)
+			if err != nil {
+				return err
+			}
+
+			if pr.Status != entity.PullRequestStatusOpen {
+				continue
+			}
+
+			if err := s.reassignOrRemoveReviewer(ctx, pr, id, teamMembers); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *PullRequestService) reassignOrRemoveReviewer(
+	ctx context.Context,
+	pr *entity.PullRequest,
+	oldReviewerID string,
+	teamMembers []entity.User,
+) error {
+	currentReviewers, err := s.reviewerRepo.GetByPullRequestID(ctx, pr.ID)
+	if err != nil {
+		return err
+	}
+
+	assignedSet := make(map[string]struct{}, len(currentReviewers))
+	for _, r := range currentReviewers {
+		assignedSet[r.ReviewerID] = struct{}{}
+	}
+
+	candidates := selectReviewersForReassign(teamMembers, pr.AuthorID, oldReviewerID, assignedSet)
+	if len(candidates) == 0 {
+		return s.reviewerRepo.RemoveReviewer(ctx, pr.ID, oldReviewerID)
+	}
+
+	newReviewerID := s.pickRandomReviewers(candidates, 1)[0]
+	if err := s.reviewerRepo.RemoveReviewer(ctx, pr.ID, oldReviewerID); err != nil {
+		return err
+	}
+
+	if err := s.reviewerRepo.AddReviewer(ctx, pr.ID, newReviewerID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // pickRandomReviewers picks up to n random reviewer IDs from the given users.
 func (s *PullRequestService) pickRandomReviewers(candidates []entity.User, n int) []string {
 	if len(candidates) == 0 || n <= 0 {
