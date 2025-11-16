@@ -109,7 +109,7 @@ func (h *PullRequestHandler) Reassign(c *gin.Context) {
 		return
 	}
 
-	pr, reviewerIDs, replacedBy, err := h.prSvc.Reassign(c.Request.Context(), req.PullRequestID, req.OldUserID)
+	res, err := h.prSvc.Reassign(c.Request.Context(), req.PullRequestID, req.OldUserID)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrNotFound):
@@ -130,8 +130,8 @@ func (h *PullRequestHandler) Reassign(c *gin.Context) {
 		PR         PullRequestDTO `json:"pr"`
 		ReplacedBy string         `json:"replaced_by"`
 	}{
-		PR:         toPullRequestDTO(pr, reviewerIDs),
-		ReplacedBy: replacedBy,
+		PR:         toPullRequestDTO(res.PR, res.ReviewerIDs),
+		ReplacedBy: res.ReplacedByID,
 	}
 
 	c.JSON(http.StatusOK, resp)
