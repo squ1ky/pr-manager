@@ -22,6 +22,7 @@ type PullRequestService struct {
 	reviewerRepo repository.PullRequestReviewerRepository
 	userRepo     repository.UserRepository
 
+	tx  repository.TxManager
 	rnd *rand.Rand
 }
 
@@ -30,11 +31,13 @@ func NewPullRequestService(
 	prRepo repository.PullRequestRepository,
 	reviewerRepo repository.PullRequestReviewerRepository,
 	userRepo repository.UserRepository,
+	tx repository.TxManager,
 ) *PullRequestService {
 	return &PullRequestService{
 		prRepo:       prRepo,
 		reviewerRepo: reviewerRepo,
 		userRepo:     userRepo,
+		tx:           tx,
 		rnd:          rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
@@ -69,14 +72,19 @@ func (s *PullRequestService) Create(
 		Status:   entity.PullRequestStatusOpen,
 	}
 
-	if err := s.prRepo.CreatePullRequest(ctx, pr); err != nil {
-		return nil, nil, err
-	}
-
-	if len(reviewerIDs) > 0 {
-		if err := s.reviewerRepo.SetForPullRequest(ctx, pr.ID, reviewerIDs); err != nil {
-			return nil, nil, err
+	if err := s.tx.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := s.prRepo.CreatePullRequest(txCtx, pr); err != nil {
+			return err
 		}
+
+		if len(reviewerIDs) > 0 {
+			if err := s.reviewerRepo.SetForPullRequest(txCtx, pr.ID, reviewerIDs); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return nil, nil, err
 	}
 
 	return pr, reviewerIDs, nil
@@ -138,10 +146,16 @@ func (s *PullRequestService) Reassign(
 
 	newReviewerID := s.pickRandomReviewers(candidates, 1)[0]
 
-	if err := s.reviewerRepo.RemoveReviewer(ctx, prID, oldReviewerID); err != nil {
-		return nil, err
-	}
-	if err := s.reviewerRepo.AddReviewer(ctx, prID, newReviewerID); err != nil {
+	if err := s.tx.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := s.reviewerRepo.RemoveReviewer(txCtx, prID, oldReviewerID); err != nil {
+			return err
+		}
+
+		if err := s.reviewerRepo.AddReviewer(txCtx, prID, newReviewerID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 
@@ -253,30 +267,34 @@ func (s *PullRequestService) DeactivateTeamMembersAndReassign(
 	}
 
 	for _, id := range userIDs {
-		if _, err := s.userRepo.SetUserActive(ctx, id, false); err != nil {
-			return err
-		}
-	}
+		if err := s.tx.WithinTransaction(ctx, func(txCtx context.Context) error {
+			if _, err := s.userRepo.SetUserActive(txCtx, id, false); err != nil {
+				return err
+			}
 
-	for _, id := range userIDs {
-		prIDs, err := s.reviewerRepo.GetPullRequestIDsByReviewer(ctx, id)
-		if err != nil {
-			return err
-		}
-
-		for _, prID := range prIDs {
-			pr, err := s.prRepo.GetPullRequestByID(ctx, prID)
+			prIDs, err := s.reviewerRepo.GetPullRequestIDsByReviewer(txCtx, id)
 			if err != nil {
 				return err
 			}
 
-			if pr.Status != entity.PullRequestStatusOpen {
-				continue
+			for _, prID := range prIDs {
+				pr, err := s.prRepo.GetPullRequestByID(txCtx, prID)
+				if err != nil {
+					return err
+				}
+
+				if pr.Status != entity.PullRequestStatusOpen {
+					continue
+				}
+
+				if err := s.reassignOrRemoveReviewer(txCtx, pr, id, teamMembers); err != nil {
+					return err
+				}
 			}
 
-			if err := s.reassignOrRemoveReviewer(ctx, pr, id, teamMembers); err != nil {
-				return err
-			}
+			return nil
+		}); err != nil {
+			return err
 		}
 	}
 

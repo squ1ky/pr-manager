@@ -25,8 +25,9 @@ func (r *TeamRepository) CreateTeam(ctx context.Context, teamName string) error 
 		INSERT INTO teams (name)
 		VALUES ($1)
 	`
+	e := ext(ctx, r.db)
 
-	if _, err := r.db.ExecContext(ctx, insertTeam, teamName); err != nil {
+	if _, err := e.ExecContext(ctx, insertTeam, teamName); err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
 			return repository.ErrAlreadyExists
@@ -43,9 +44,10 @@ func (r *TeamRepository) GetTeamByName(ctx context.Context, teamName string) (*e
 		FROM teams
 		WHERE name = $1
 	`
+	e := ext(ctx, r.db)
 
 	var team entity.Team
-	if err := r.db.GetContext(ctx, &team, selectTeam, teamName); err != nil {
+	if err := sqlx.GetContext(ctx, e, &team, selectTeam, teamName); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil, repository.ErrNotFound
 		}
@@ -58,7 +60,7 @@ func (r *TeamRepository) GetTeamByName(ctx context.Context, teamName string) (*e
 		WHERE team_name = $1
 	`
 	var members []entity.User
-	if err := r.db.SelectContext(ctx, &members, selectMembers, team.Name); err != nil {
+	if err := sqlx.SelectContext(ctx, e, &members, selectMembers, team.Name); err != nil {
 		return nil, nil, err
 	}
 

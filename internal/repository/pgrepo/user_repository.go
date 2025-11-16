@@ -20,6 +20,10 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 }
 
 func (r *UserRepository) UpsertUsers(ctx context.Context, users []entity.User) (err error) {
+	if tx, ok := txFromCtx(ctx); ok && tx != nil {
+		return r.upsertUsersWithExt(ctx, tx, users)
+	}
+
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return err
@@ -31,19 +35,30 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []entity.User) (
 		}
 	}()
 
-	const q = `
-		INSERT INTO users (id, username, team_name, is_active)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (id) DO UPDATE
-		SET username = EXCLUDED.username,
-			team_name = EXCLUDED.team_name,
-			is_active = EXCLUDED.is_active
-	`
+	if err = r.upsertUsersWithExt(ctx, tx, users); err != nil {
+		return err
+	}
 
+	return tx.Commit()
+}
+
+func (r *UserRepository) upsertUsersWithExt(
+	ctx context.Context,
+	e extContext,
+	users []entity.User,
+) (err error) {
+	const q = `
+       INSERT INTO users (id, username, team_name, is_active)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (id) DO UPDATE
+       SET username = EXCLUDED.username,
+           team_name = EXCLUDED.team_name,
+           is_active = EXCLUDED.is_active
+    `
 	for i := range users {
 		u := &users[i]
 
-		if _, err = tx.ExecContext(ctx, q,
+		if _, err = e.ExecContext(ctx, q,
 			u.ID,
 			u.Username,
 			u.TeamName,
@@ -53,7 +68,7 @@ func (r *UserRepository) UpsertUsers(ctx context.Context, users []entity.User) (
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func (r *UserRepository) GetUserByID(ctx context.Context, id string) (*entity.User, error) {
@@ -62,9 +77,10 @@ func (r *UserRepository) GetUserByID(ctx context.Context, id string) (*entity.Us
     	FROM users
 		WHERE id = $1
 	`
+	e := ext(ctx, r.db)
 
 	var u entity.User
-	if err := r.db.GetContext(ctx, &u, q, id); err != nil {
+	if err := sqlx.GetContext(ctx, e, &u, q, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repository.ErrNotFound
 		}
@@ -81,9 +97,10 @@ func (r *UserRepository) SetUserActive(ctx context.Context, userID string, activ
 		WHERE id = $1
 		RETURNING id, username, team_name, is_active, created_at
 	`
+	e := ext(ctx, r.db)
 
 	var u entity.User
-	if err := r.db.GetContext(ctx, &u, q, userID, active); err != nil {
+	if err := sqlx.GetContext(ctx, e, &u, q, userID, active); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repository.ErrNotFound
 		}
@@ -99,9 +116,10 @@ func (r *UserRepository) GetUsersByTeamName(ctx context.Context, teamName string
 		FROM users
 		WHERE team_name = $1
 	`
+	e := ext(ctx, r.db)
 
 	var users []entity.User
-	if err := r.db.SelectContext(ctx, &users, q, teamName); err != nil {
+	if err := sqlx.SelectContext(ctx, e, &users, q, teamName); err != nil {
 		return nil, err
 	}
 

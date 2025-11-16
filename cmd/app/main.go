@@ -47,10 +47,11 @@ func main() {
 	userRepo := pgrepo.NewUserRepository(dbConn.DB)
 	prRepo := pgrepo.NewPullRequestRepository(dbConn.DB)
 	prReviewerRepo := pgrepo.NewPullRequestReviewerRepository(dbConn.DB)
+	txManager := pgrepo.NewTxManager(dbConn.DB)
 
-	teamSvc := service.NewTeamService(teamRepo, userRepo)
+	teamSvc := service.NewTeamService(teamRepo, userRepo, txManager)
 	userSvc := service.NewUserService(userRepo)
-	prSvc := service.NewPullRequestService(prRepo, prReviewerRepo, userRepo)
+	prSvc := service.NewPullRequestService(prRepo, prReviewerRepo, userRepo, txManager)
 
 	gin.SetMode(gin.DebugMode)
 	router := gin.New()

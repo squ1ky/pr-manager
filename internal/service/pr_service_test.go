@@ -14,12 +14,22 @@ import (
 	"github.com/squ1ky/pr-manager/internal/repository"
 )
 
+type noopTxManager struct{}
+
+func (n noopTxManager) WithinTransaction(
+	ctx context.Context,
+	fn func(ctx context.Context) error,
+) error {
+	return fn(ctx)
+}
+
 type prServiceTestDeps struct {
 	ctx          context.Context
 	prRepo       *mocks.PullRequestRepositoryMock
 	reviewerRepo *mocks.PullRequestReviewerRepositoryMock
 	userRepo     *mocks.UserRepositoryMock
 	svc          *PullRequestService
+	tx           repository.TxManager
 }
 
 func setupPRServiceTest(t *testing.T) prServiceTestDeps {
@@ -28,8 +38,9 @@ func setupPRServiceTest(t *testing.T) prServiceTestDeps {
 	prRepo := &mocks.PullRequestRepositoryMock{}
 	reviewerRepo := &mocks.PullRequestReviewerRepositoryMock{}
 	userRepo := &mocks.UserRepositoryMock{}
+	tx := noopTxManager{}
 
-	svc := NewPullRequestService(prRepo, reviewerRepo, userRepo)
+	svc := NewPullRequestService(prRepo, reviewerRepo, userRepo, tx)
 	svc.rnd = rand.New(rand.NewSource(1))
 
 	return prServiceTestDeps{

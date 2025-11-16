@@ -25,8 +25,9 @@ func (r *PullRequestRepository) CreatePullRequest(ctx context.Context, pr *entit
 		INSERT INTO pull_requests (id, name, author_id, status)
 		VALUES ($1, $2, $3, $4)
 	`
+	e := ext(ctx, r.db)
 
-	_, err := r.db.ExecContext(ctx, q,
+	_, err := e.ExecContext(ctx, q,
 		pr.ID,
 		pr.Name,
 		pr.AuthorID,
@@ -49,9 +50,10 @@ func (r *PullRequestRepository) GetPullRequestByID(ctx context.Context, id strin
 		FROM pull_requests
 		WHERE id = $1
 	`
+	e := ext(ctx, r.db)
 
 	var pr entity.PullRequest
-	if err := r.db.GetContext(ctx, &pr, q, id); err != nil {
+	if err := sqlx.GetContext(ctx, e, &pr, q, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repository.ErrNotFound
 		}
@@ -77,10 +79,11 @@ func (r *PullRequestRepository) GetPullRequestsByIDs(ctx context.Context, ids []
 		return nil, err
 	}
 
+	e := ext(ctx, r.db)
 	query = r.db.Rebind(query)
 
 	var prs []entity.PullRequest
-	if err := r.db.SelectContext(ctx, &prs, query, args...); err != nil {
+	if err := sqlx.SelectContext(ctx, e, &prs, query, args...); err != nil {
 		return nil, err
 	}
 
@@ -95,9 +98,10 @@ func (r *PullRequestRepository) MarkMerged(ctx context.Context, id string) (*ent
 		WHERE id = $1
 		RETURNING id, name, author_id, status, created_at, merged_at
 	`
+	e := ext(ctx, r.db)
 
 	var pr entity.PullRequest
-	if err := r.db.GetContext(ctx, &pr, q, id, entity.PullRequestStatusMerged); err != nil {
+	if err := sqlx.GetContext(ctx, e, &pr, q, id, entity.PullRequestStatusMerged); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, repository.ErrNotFound
 		}

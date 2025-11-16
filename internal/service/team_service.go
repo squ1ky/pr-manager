@@ -11,35 +11,57 @@ import (
 type TeamService struct {
 	teamRepo repository.TeamRepository
 	userRepo repository.UserRepository
+	tx       repository.TxManager
 }
 
 // NewTeamService constructs a new TeamService with the given repositories.
-func NewTeamService(teamRepo repository.TeamRepository, userRepo repository.UserRepository) *TeamService {
+func NewTeamService(
+	teamRepo repository.TeamRepository,
+	userRepo repository.UserRepository,
+	tx repository.TxManager,
+) *TeamService {
 	return &TeamService{
 		teamRepo: teamRepo,
 		userRepo: userRepo,
+		tx:       tx,
 	}
 }
 
 // CreateTeamWithMembers creates a team and upserts its members into that team.
-func (s *TeamService) CreateTeamWithMembers(ctx context.Context, teamName string, members []entity.User) (*entity.Team, []entity.User, error) {
-	if err := s.teamRepo.CreateTeam(ctx, teamName); err != nil {
-		return nil, nil, err
-	}
+func (s *TeamService) CreateTeamWithMembers(
+	ctx context.Context,
+	teamName string,
+	members []entity.User,
+) (*entity.Team, []entity.User, error) {
+	var (
+		team          *entity.Team
+		actualMembers []entity.User
+	)
 
-	membersWithTeam := make([]entity.User, 0, len(members))
-	for i := range members {
-		u := members[i]
-		u.TeamName = &teamName
-		membersWithTeam = append(membersWithTeam, u)
-	}
+	if err := s.tx.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if err := s.teamRepo.CreateTeam(txCtx, teamName); err != nil {
+			return err
+		}
 
-	if err := s.userRepo.UpsertUsers(ctx, membersWithTeam); err != nil {
-		return nil, nil, err
-	}
+		membersWithTeam := make([]entity.User, 0, len(members))
+		for i := range members {
+			u := members[i]
+			u.TeamName = &teamName
+			membersWithTeam = append(membersWithTeam, u)
+		}
 
-	team, actualMembers, err := s.teamRepo.GetTeamByName(ctx, teamName)
-	if err != nil {
+		if err := s.userRepo.UpsertUsers(txCtx, membersWithTeam); err != nil {
+			return err
+		}
+
+		var err error
+		team, actualMembers, err = s.teamRepo.GetTeamByName(txCtx, teamName)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		return nil, nil, err
 	}
 

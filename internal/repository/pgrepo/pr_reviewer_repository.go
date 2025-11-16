@@ -21,6 +21,10 @@ func NewPullRequestReviewerRepository(db *sqlx.DB) *PullRequestReviewerRepositor
 }
 
 func (r *PullRequestReviewerRepository) SetForPullRequest(ctx context.Context, prID string, reviewerIDs []string) error {
+	if tx, ok := txFromCtx(ctx); ok && tx != nil {
+		return r.setForPullRequestWithExt(ctx, tx, prID, reviewerIDs)
+	}
+
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return err
@@ -32,27 +36,40 @@ func (r *PullRequestReviewerRepository) SetForPullRequest(ctx context.Context, p
 		}
 	}()
 
+	if err = r.setForPullRequestWithExt(ctx, tx, prID, reviewerIDs); err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (r *PullRequestReviewerRepository) setForPullRequestWithExt(
+	ctx context.Context,
+	e extContext,
+	prID string,
+	reviewerIDs []string,
+) (err error) {
 	const deleteOld = `
-		DELETE FROM pull_request_reviewers
-		WHERE pull_request_id = $1
-	`
-	if _, err = tx.ExecContext(ctx, deleteOld, prID); err != nil {
+       DELETE FROM pull_request_reviewers
+       WHERE pull_request_id = $1
+    `
+	if _, err = e.ExecContext(ctx, deleteOld, prID); err != nil {
 		return err
 	}
 
 	if len(reviewerIDs) > 0 {
 		const insertNew = `
-			INSERT INTO pull_request_reviewers (pull_request_id, reviewer_id)
-			VALUES ($1, $2)
-		`
+          INSERT INTO pull_request_reviewers (pull_request_id, reviewer_id)
+          VALUES ($1, $2)
+        `
 		for _, reviewerId := range reviewerIDs {
-			if _, err = tx.ExecContext(ctx, insertNew, prID, reviewerId); err != nil {
+			if _, err = e.ExecContext(ctx, insertNew, prID, reviewerId); err != nil {
 				return err
 			}
 		}
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func (r *PullRequestReviewerRepository) GetByPullRequestID(ctx context.Context, prID string) ([]entity.PullRequestReviewer, error) {
@@ -61,9 +78,10 @@ func (r *PullRequestReviewerRepository) GetByPullRequestID(ctx context.Context, 
 		FROM pull_request_reviewers
 		WHERE pull_request_id = $1
 	`
+	e := ext(ctx, r.db)
 
 	var reviewers []entity.PullRequestReviewer
-	if err := r.db.SelectContext(ctx, &reviewers, q, prID); err != nil {
+	if err := sqlx.SelectContext(ctx, e, &reviewers, q, prID); err != nil {
 		return nil, err
 	}
 
@@ -76,9 +94,10 @@ func (r *PullRequestReviewerRepository) GetPullRequestIDsByReviewer(ctx context.
 		FROM pull_request_reviewers
 		WHERE reviewer_id = $1
 	`
+	e := ext(ctx, r.db)
 
 	var ids []string
-	if err := r.db.SelectContext(ctx, &ids, q, reviewerID); err != nil {
+	if err := sqlx.SelectContext(ctx, e, &ids, q, reviewerID); err != nil {
 		return nil, err
 	}
 
@@ -90,8 +109,9 @@ func (r *PullRequestReviewerRepository) AddReviewer(ctx context.Context, prID st
 		INSERT INTO pull_request_reviewers (pull_request_id, reviewer_id)
 		VALUES ($1, $2)
 	`
+	e := ext(ctx, r.db)
 
-	if _, err := r.db.ExecContext(ctx, q, prID, reviewerID); err != nil {
+	if _, err := e.ExecContext(ctx, q, prID, reviewerID); err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
 			return repository.ErrAlreadyExists
@@ -107,8 +127,9 @@ func (r *PullRequestReviewerRepository) RemoveReviewer(ctx context.Context, prID
 		DELETE FROM pull_request_reviewers
 		WHERE pull_request_id = $1 AND reviewer_id = $2
 	`
+	e := ext(ctx, r.db)
 
-	if _, err := r.db.ExecContext(ctx, q, prID, reviewerID); err != nil {
+	if _, err := e.ExecContext(ctx, q, prID, reviewerID); err != nil {
 		return err
 	}
 
@@ -122,9 +143,10 @@ func (r *PullRequestReviewerRepository) IsReviewerAssigned(ctx context.Context, 
 		WHERE pull_request_id = $1 AND reviewer_id = $2
 		LIMIT 1
 	`
+	e := ext(ctx, r.db)
 
 	var dummy int
-	if err := r.db.GetContext(ctx, &dummy, q, prID, reviewerID); err != nil {
+	if err := sqlx.GetContext(ctx, e, &dummy, q, prID, reviewerID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
@@ -140,9 +162,10 @@ func (r *PullRequestReviewerRepository) GetUserAssignmentsStat(ctx context.Conte
 		FROM pull_request_reviewers
 		WHERE reviewer_id = $1
 	`
+	e := ext(ctx, r.db)
 
 	var count int
-	if err := r.db.GetContext(ctx, &count, q, userID); err != nil {
+	if err := sqlx.GetContext(ctx, e, &count, q, userID); err != nil {
 		return repository.UserAssignmentsStat{}, err
 	}
 

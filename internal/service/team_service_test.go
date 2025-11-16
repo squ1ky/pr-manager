@@ -18,6 +18,7 @@ type teamServiceTestDeps struct {
 	teamRepo *mocks.TeamRepositoryMock
 	userRepo *mocks.UserRepositoryMock
 	svc      *TeamService
+	tx       repository.TxManager
 }
 
 func setupTeamServiceTest(t *testing.T) teamServiceTestDeps {
@@ -25,8 +26,9 @@ func setupTeamServiceTest(t *testing.T) teamServiceTestDeps {
 
 	teamRepo := &mocks.TeamRepositoryMock{}
 	userRepo := &mocks.UserRepositoryMock{}
+	tx := noopTxManager{}
 
-	svc := NewTeamService(teamRepo, userRepo)
+	svc := NewTeamService(teamRepo, userRepo, tx)
 
 	return teamServiceTestDeps{
 		ctx:      context.Background(),
