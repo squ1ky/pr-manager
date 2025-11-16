@@ -3,7 +3,6 @@ package v1
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/squ1ky/pr-manager/internal/entity"
 	"github.com/squ1ky/pr-manager/internal/repository"
 	"github.com/squ1ky/pr-manager/internal/service"
 	"log/slog"
@@ -35,16 +34,9 @@ func (h *TeamHandler) AddTeam(c *gin.Context) {
 		return
 	}
 
-	members := make([]entity.User, 0, len(req.Members))
-	for _, m := range req.Members {
-		members = append(members, entity.User{
-			ID:       m.UserID,
-			Username: m.Username,
-			IsActive: *m.IsActive,
-		})
-	}
+	users := teamMembersToUsers(req.Members)
 
-	team, actualMembers, err := h.teamSvc.CreateTeamWithMembers(c.Request.Context(), req.TeamName, members)
+	team, actualMembers, err := h.teamSvc.CreateTeamWithMembers(c.Request.Context(), req.TeamName, users)
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrAlreadyExists):
@@ -56,17 +48,7 @@ func (h *TeamHandler) AddTeam(c *gin.Context) {
 		return
 	}
 
-	resp := TeamDTO{
-		TeamName: team.Name,
-		Members:  make([]TeamMemberDTO, 0, len(actualMembers)),
-	}
-	for _, u := range actualMembers {
-		resp.Members = append(resp.Members, TeamMemberDTO{
-			UserID:   u.ID,
-			Username: u.Username,
-			IsActive: &u.IsActive,
-		})
-	}
+	resp := toTeamDTO(team, actualMembers)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"team": resp,
@@ -94,17 +76,7 @@ func (h *TeamHandler) GetTeam(c *gin.Context) {
 		return
 	}
 
-	resp := TeamDTO{
-		TeamName: team.Name,
-		Members:  make([]TeamMemberDTO, 0, len(members)),
-	}
-	for _, u := range members {
-		resp.Members = append(resp.Members, TeamMemberDTO{
-			UserID:   u.ID,
-			Username: u.Username,
-			IsActive: &u.IsActive,
-		})
-	}
+	resp := toTeamDTO(team, members)
 
 	c.JSON(http.StatusOK, resp)
 }

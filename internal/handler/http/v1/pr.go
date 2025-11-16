@@ -3,7 +3,6 @@ package v1
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/squ1ky/pr-manager/internal/entity"
 	"github.com/squ1ky/pr-manager/internal/repository"
 	"github.com/squ1ky/pr-manager/internal/service"
 	"net/http"
@@ -65,6 +64,7 @@ func (h *PullRequestHandler) Create(c *gin.Context) {
 	}
 
 	resp := toPullRequestDTO(pr, reviewerIDs)
+
 	c.JSON(http.StatusCreated, gin.H{
 		"pr": resp,
 	})
@@ -92,6 +92,7 @@ func (h *PullRequestHandler) Merge(c *gin.Context) {
 	}
 
 	resp := toPullRequestDTO(pr, reviewerIDs)
+
 	c.JSON(http.StatusOK, gin.H{
 		"pr": resp,
 	})
@@ -134,20 +135,4 @@ func (h *PullRequestHandler) Reassign(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
-}
-
-// move to mapper
-
-func toPullRequestDTO(pr *entity.PullRequest, reviewers []string) PullRequestDTO {
-	dto := PullRequestDTO{
-		PullRequestID:     pr.ID,
-		PullRequestName:   pr.Name,
-		AuthorID:          pr.AuthorID,
-		Status:            string(pr.Status),
-		AssignedReviewers: reviewers,
-	}
-
-	dto.MergedAt = pr.MergedAt
-
-	return dto
 }

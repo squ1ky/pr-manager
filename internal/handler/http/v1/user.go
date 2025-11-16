@@ -49,12 +49,7 @@ func (h *UserHandler) SetIsActive(c *gin.Context) {
 		return
 	}
 
-	resp := UserDTO{
-		UserID:   user.ID,
-		Username: user.Username,
-		TeamName: *user.TeamName,
-		IsActive: user.IsActive,
-	}
+	resp := toUserDTO(user)
 
 	c.JSON(http.StatusOK, gin.H{
 		"user": resp,
@@ -93,16 +88,7 @@ func (h *UserHandler) GetReview(c *gin.Context) {
 
 	resp := getReviewResponse{
 		UserID:       req.UserID,
-		PullRequests: make([]PullRequestShortDTO, 0, len(prs)),
-	}
-
-	for _, pr := range prs {
-		resp.PullRequests = append(resp.PullRequests, PullRequestShortDTO{
-			PullRequestID:   pr.ID,
-			PullRequestName: pr.Name,
-			AuthorID:        pr.AuthorID,
-			Status:          string(pr.Status),
-		})
+		PullRequests: toPullRequestShortList(prs),
 	}
 
 	c.JSON(http.StatusOK, resp)
