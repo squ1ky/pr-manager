@@ -18,5 +18,4 @@
 *.swo
 *~
 
-.env
 coverage.html
